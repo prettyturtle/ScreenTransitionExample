@@ -9,9 +9,16 @@ import UIKit
 
 class SeguePushViewController: UIViewController {
 
+    @IBOutlet weak var nameLabel: UILabel!
+    var name: String?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         print("SeguePushViewController에서 viewDidLoad가 실행되었다")
+        
+        if let name = name {
+            self.nameLabel.text = name
+        }
     }
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)

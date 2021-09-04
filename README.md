@@ -1,4 +1,4 @@
-#  화면 전환 & Life Cycle
+#  화면 전환 & Life Cycle & 데이터 전달
 
 
 - ViewController에서 다른 ViewController를 호출하여 화면 전환하기(present, 기존 ViewController 위에 새로운 ViewController를 덮는 방식)
@@ -185,3 +185,138 @@ override func viewDidDisappear(_ animated: Bool) {
     print("SeguePushViewController에서 viewDidDisapper가 실행되었다")
 }
 ```
+
+---
+
+## 데이터 전달
+
+### 다음 뷰로 데이터 전달
+
+1. 코드로 구현된 화면 전환 방법에서 데이터 전달하기
+2. segueway로 구현된 화면 전환 방법에서 데이터 전달하기
+
+#### 코드로 구현된 화면 전환 방법에서 데이터 전달하기 (`instantiateViewController`)
+
+- 데이터를 전송 받을 뷰에, 전달 받을 변수를 선언한다
+- 뷰를 push, present하기 전에, 데이터를 보낼 View Controller에서 인스턴스화된(데이터를 받을 뷰) 뷰를 다운캐스팅한다
+- 다운캐스팅을 하게 되면 위에서 정의한 변수를 사용할 수 있다
+- 변수를 변경하고 push, present를 하고
+- 데이터를 전달 받은 뷰에서 옵셔널 바인딩으로 사용하면 된다
+
+- viewController
+
+``` swift
+@IBAction func tapCodePushButton(_ sender: UIButton) {
+    guard let viewController = self.storyboard?.instantiateViewController(identifier: "CodePushViewController") as? CodePushViewController else { return }
+    
+    viewController.name = "뷰 컨트롤러으로부터 code push로\n데이터를 전달받았습니다" // 데이터 전달
+    
+    self.navigationController?.pushViewController(viewController, animated: true)
+}
+```
+
+- CodePushViewController
+
+``` swift
+@IBOutlet weak var nameLabel: UILabel!
+var name: String? // 데이터를 전송 받을 변수
+
+override func viewDidLoad() {
+    super.viewDidLoad()
+    // 데이터 전달 후 사용
+    if let name = name {
+        self.nameLabel.text = name
+    }
+
+}
+```
+
+#### segueway로 구현된 화면 전환 방법에서 데이터 전달하기 (`prepare`)
+- 데이터를 전송 받을 뷰에, 전달 받을 변수를 선언한다
+- 데이터를 전달할 뷰에서 `prepare` 함수를 override한다
+- `segue.destination`을 전달할 뷰로 다운캐스팅한다
+- 다운캐스팅을 하게 되면 위에서 정의한 변수를 사용할 수 있다
+- 변수를 변경하고 push, present를 하고
+- 데이터를 전달 받은 뷰에서 옵셔널 바인딩으로 사용하면 된다
+
+- viewController
+
+``` swift
+override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+    if let viewController = segue.destination as? SeguePushViewController {
+        viewController.name = "뷰 컨트롤러으로부터 segue push로\n데이터를 전달받았습니다"
+    }
+}
+```
+
+- SeguePushViewController
+
+``` swift
+@IBOutlet weak var nameLabel: UILabel!
+var name: String?
+
+override func viewDidLoad() {
+    super.viewDidLoad()
+    print("SeguePushViewController에서 viewDidLoad가 실행되었다")
+    
+    if let name = name {
+        self.nameLabel.text = name
+    }
+}
+```
+
+### 이전 뷰로 데이터 전달
+
+- Delegate 패턴을 이용하여 이전 화면으로 데이터 전달하기
+
+
+#### Delegate 패턴을 이용하여 이전 화면으로 데이터 전달하기 (`protocol`)
+
+- protocol을 선언한다
+
+``` swift
+protocol SendDataDelegate: AnyObject {
+    func sendData(name: String)
+}
+```
+
+- 프로토콜 타입의 변수를 선언한다
+
+``` swift
+    weak var delegate: SendDataDelegate? // weak 필수
+```
+
+- ViewController에 프로토콜을 채택해주고 present하기 전에 인스턴스화한 뷰에서 프로토콜 타입의 변수를 self라고 정의한다
+- 그리고 프로토콜에서 정의했던 메소드 (sendData)를 정의한다
+
+``` swift
+class ViewController: UIViewController, SendDataDelegate {
+
+    @IBAction func tapCodePresentButton(_ sender: UIButton) {
+        guard let viewController = self.storyboard?.instantiateViewController(identifier: "CodePresentViewController") as? CodePresentViewController else { return }
+        viewController.modalPresentationStyle = .fullScreen
+        
+        viewController.delegate = self
+    
+        self.present(viewController, animated: true, completion: nil)
+        
+        }
+        
+    func sendData(name: String) {
+        self.nameLabel.text = name
+        }
+    
+}
+```
+
+
+- dismiss하기 전에 앞서 만든 프로토콜 타입의 변수에서 함수를 실행한다
+
+``` swift
+@IBAction func tapBackButton(_ sender: UIButton) {
+    self.delegate?.sendData(name: "이전 화면으로부터 데이터를 전달 받았습니다")
+    self.presentingViewController?.dismiss(animated: true, completion: nil)
+}
+```
+
+
